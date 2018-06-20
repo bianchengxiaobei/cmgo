@@ -21,6 +21,7 @@ type TcpServer struct {
 	sessions 	map[uint32]SocketSessionInterface
 }
 type SocketSessionConfig struct {
+	SocketAddr			string
 	TcpNoDelay         bool
 	TcpKeepAlive       bool
 	TcpKeepAlivePeriod time.Duration
