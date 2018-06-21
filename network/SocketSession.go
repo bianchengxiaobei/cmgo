@@ -49,7 +49,8 @@ type SocketSessionInterface interface {
 	SetReadChan(int)
 	SetWriteChan(int)
 	CloseChan()
-	Write(msgId int,message interface{},timeout time.Duration) error
+	WriteMsg(msgId int,message interface{},timeout time.Duration) error
+	WriteBytes([]byte)error
 }
 //创建SocketSession和SocketConnection
 func CreateSocketSession(conn net.Conn) *SocketSession{
@@ -121,7 +122,7 @@ func (session *SocketSession) SetWriteChan(len int){
 	session.rwLock.Unlock()
 }
 //写消息
-func (session *SocketSession)Write(msgId int,message interface{},timeout time.Duration) error{
+func (session *SocketSession)WriteMsg(msgId int,message interface{},timeout time.Duration) error{
 	if session.IsClosed(){
 		return	ErrSessionClosed
 	}
@@ -134,6 +135,16 @@ func (session *SocketSession)Write(msgId int,message interface{},timeout time.Du
 		break
 	case <-wheel.After(timeout):
 			return ErrSessionBlocked
+	}
+	return nil
+}
+//写数据
+func (session *SocketSession)WriteBytes(data []byte) error{
+	if session.IsClosed(){
+		return	ErrSessionClosed
+	}
+	if _,err := session.SocketConnectInterface.Write(data);err != nil{
+		return err
 	}
 	return nil
 }
