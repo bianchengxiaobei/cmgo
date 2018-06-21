@@ -36,6 +36,9 @@ type SocketSessionInterface interface {
 	GetConn() net.Conn
 	SetProtocol(coder Protocol)
 	SetHandler(handler EventHandleInterface)
+	GetAttribute(key interface{}) interface{}
+	RemoveAttribute(key interface{})
+	SetAttribute(key interface{}, value interface{})
 	SetReadChan(int)
 	SetWriteChan(int)
 	CloseChan()
@@ -191,7 +194,7 @@ LOOP:
 		case inData = <-session.readQueue:
 			session.handler.MessageReceived(session,inData)
 		case outData = <-session.writeQueue:
-			if err = session.coder.Decode(session,outData);err != nil{
+			if err = session.coder.Encode(session,outData);err != nil{
 				
 			}
 			session.handler.MessageSent(session,outData)
@@ -251,7 +254,7 @@ func (session *SocketSession) messageLoop(){
 			if dataBuffer.Len() < 0{
 				break
 			}
-			message,messageLen,err = session.coder.Encode(session,dataBuffer.Bytes())
+			message,messageLen,err = session.coder.Decode(session,dataBuffer.Bytes())
 			if err != nil{
 				stop = true
 				break
