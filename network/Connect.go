@@ -44,6 +44,7 @@ type SocketConnectInterface interface {
 	SetWriteTimeout(time.Duration)
 	SetSocketSession(SocketSessionInterface)
 	Read([]byte)(int,error)
+	Write([]byte)(int,error)
 	Close(waitSecondTime int)
 }
 var connectId uint32
@@ -117,7 +118,7 @@ func (connect *SocketTcpConnect) Close(waitSecondTime int){
 func (connect *SocketConnect) SetSocketSession(session SocketSessionInterface){
 	connect.session = session
 }
-func (connect *SocketTcpConnect) Read(data []byte)(len int,err error){
+func (connect *SocketTcpConnect) Read(data []byte)(int,error){
 	if connect.readTimeout > 0{
 		currentTime := wheel.Now()
 		if currentTime.Sub(connect.readLastDeadTime) > (connect.readTimeout >> 2){
@@ -127,10 +128,18 @@ func (connect *SocketTcpConnect) Read(data []byte)(len int,err error){
 			connect.readLastDeadTime = currentTime
 		}
 	}
-	length,err:=connect.reader.Read(data)
-	atomic.AddUint32(&connect.readBytes,uint32(length))
-	return length,err
-
+	if length,err:=connect.reader.Read(data);err == nil{
+		atomic.AddUint32(&connect.readBytes,uint32(length))
+		return length,err
+	}
+	return 0,nil
+}
+func (connect *SocketTcpConnect) Write(data []byte)(int, error){
+	len,err:=connect.writer.Write(data)
+	if err == nil{
+		atomic.AddUint32(&connect.writeBytes,uint32(len))
+	}
+	return len,err
 }
 
 
