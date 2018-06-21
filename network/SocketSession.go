@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync/atomic"
+	"errors"
 )
 
 const (
@@ -17,6 +18,8 @@ const (
 	waitDuration = 3e9
 )
 var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
+var ErrSessionClosed = errors.New("Session已经关闭!")
+var ErrSessionBlocked = errors.New("Session阻塞!")
 type SocketSession struct{
 	SocketConnectInterface
 	once       sync.Once
@@ -31,6 +34,10 @@ type SocketSession struct{
 	attrs      *cmattribute.ValuesContext
 	coder      Protocol
 }
+type WriteMessage struct {
+	msgId 		int
+	msgData		interface{}
+}
 type SocketSessionInterface interface {
 	SocketConnectInterface
 	GetConn() net.Conn
@@ -42,6 +49,7 @@ type SocketSessionInterface interface {
 	SetReadChan(int)
 	SetWriteChan(int)
 	CloseChan()
+	Write(msgId int,message interface{},timeout time.Duration) error
 }
 //创建SocketSession和SocketConnection
 func CreateSocketSession(conn net.Conn) *SocketSession{
@@ -111,6 +119,23 @@ func (session *SocketSession) SetWriteChan(len int){
 	session.rwLock.Lock()
 	session.writeQueue = make(chan interface{},len)
 	session.rwLock.Unlock()
+}
+//写消息
+func (session *SocketSession)Write(msgId int,message interface{},timeout time.Duration) error{
+	if session.IsClosed(){
+		return	ErrSessionClosed
+	}
+	writeMsg := WriteMessage{
+		msgId:msgId,
+		msgData:message,
+	}
+	select {
+	case session.writeQueue<-writeMsg:
+		break
+	case <-wheel.After(timeout):
+			return ErrSessionBlocked
+	}
+	return nil
 }
 //是否Session关闭了
 func (session *SocketSession) IsClosed() bool{
