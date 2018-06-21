@@ -18,7 +18,7 @@ type TcpServer struct {
 	handler       EventHandleInterface
 	sync.Once
 	done chan struct{}
-	sessions 	map[uint32]SocketSessionInterface
+	Sessions 	map[uint32]SocketSessionInterface
 }
 type SocketSessionConfig struct {
 	SocketAddr			string

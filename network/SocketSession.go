@@ -248,6 +248,7 @@ func (session *SocketSession) messageLoop(){
 		stop bool
 		dataBuffer *bytes.Buffer
 		message interface{}
+		chanMessage WriteMessage
 		messageLen int
 	)
 	//close第一次
@@ -298,9 +299,13 @@ func (session *SocketSession) messageLoop(){
 			if message == nil{
 				break
 			}
-			session.UpdateActiveTime()
-			session.readQueue<-message
-			dataBuffer.Next(messageLen)
+			if chanMessage,ok:=message.(WriteMessage);ok{
+				session.UpdateActiveTime()
+				session.readQueue<-chanMessage
+				dataBuffer.Next(messageLen)
+			}else {
+				panic("not a chanMessage")
+			}
 		}
 		if stop{
 			break
