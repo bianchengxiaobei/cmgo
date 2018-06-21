@@ -35,8 +35,8 @@ type SocketSession struct{
 	coder      Protocol
 }
 type WriteMessage struct {
-	msgId 		int
-	msgData		interface{}
+	MsgId 		int
+	MsgData		interface{}
 }
 type SocketSessionInterface interface {
 	SocketConnectInterface
@@ -126,8 +126,8 @@ func (session *SocketSession)Write(msgId int,message interface{},timeout time.Du
 		return	ErrSessionClosed
 	}
 	writeMsg := WriteMessage{
-		msgId:msgId,
-		msgData:message,
+		MsgId:msgId,
+		MsgData:message,
 	}
 	select {
 	case session.writeQueue<-writeMsg:
