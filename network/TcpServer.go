@@ -93,7 +93,7 @@ func (server *TcpServer) accept() (*SocketSession, error) {
 	conn.SetKeepAlivePeriod(server.SessionConfig.TcpKeepAlivePeriod)
 	conn.SetReadBuffer(server.SessionConfig.TcpReadBuffSize)
 	conn.SetWriteBuffer(server.SessionConfig.TcpWriteBuffSize)
-	server.sessions[session.Id()] = session
+	server.Sessions[session.Id()] = session
 	return session, nil
 }
 
@@ -105,7 +105,7 @@ func NewTcpServer(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpSer
 	server := &TcpServer{
 		TcpVersion:    	tcpVersion,
 		SessionConfig: 	sessionConfig,
-		sessions:make(map[uint32]SocketSessionInterface),
+		Sessions:make(map[uint32]SocketSessionInterface),
 		done:			make(chan struct{}),
 	}
 	return server
@@ -134,7 +134,7 @@ func (server *TcpServer) Close() {
 				server.Listener.Close()
 				server.Listener = nil
 			}
-			for _,session:= range server.sessions {
+			for _,session:= range server.Sessions {
 				session.CloseChan()
 			}
 		})

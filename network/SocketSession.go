@@ -4,8 +4,8 @@ import (
 	"net"
 	"sync"
 	"time"
-	"cmattribute"
-	"cmtime"
+	"github.com/bianchengxiaobei/cmgo/cmattribute"
+	"github.com/bianchengxiaobei/cmgo/cmtime"
 	"bytes"
 	"fmt"
 	"sync/atomic"
@@ -248,7 +248,6 @@ func (session *SocketSession) messageLoop(){
 		stop bool
 		dataBuffer *bytes.Buffer
 		message interface{}
-		chanMessage WriteMessage
 		messageLen int
 	)
 	//close第一次
