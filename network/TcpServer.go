@@ -1,10 +1,10 @@
 package network
 
 import (
-	"fmt"
 	"net"
 	"sync"
 	"time"
+	"fmt"
 )
 
 type TcpServer struct {
@@ -38,7 +38,7 @@ type ISocket interface {
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) {
 	if addr == "" {
-		panic(fmt.Sprintf("addr == null"))
+		panic(log("addr == null"))
 	}
 	server.SocketAddress = addr
 	listener, err := net.Listen(server.TcpVersion, server.SocketAddress)
