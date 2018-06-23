@@ -7,9 +7,9 @@ import (
 	"github.com/bianchengxiaobei/cmgo/cmattribute"
 	"github.com/bianchengxiaobei/cmgo/cmtime"
 	"bytes"
-	"fmt"
 	"sync/atomic"
 	"errors"
+	"github.com/bianchengxiaobei/cmgo/log4g"
 )
 
 const (
@@ -203,7 +203,7 @@ func (session *SocketSession) workLoop(socket ISocket){
 	client,_ = socket.(*TcpClient)
 	//关闭session
 	defer func() {
-		fmt.Println("session closed!")
+		log4g.Infof("[Session:id:%d]关闭!",session.Id())
 		//防止messageLoop关闭
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.handler.SessionClosed(session)
@@ -253,7 +253,7 @@ func (session *SocketSession) messageLoop(){
 	//close第一次
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Error")
+			log4g.Error("Session已经关闭,出错!")
 		}
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.CloseChan() //close(done)

@@ -4,7 +4,7 @@ import (
 	"net"
 	"sync"
 	"time"
-	"fmt"
+	"github.com/bianchengxiaobei/cmgo/log4g"
 )
 
 type TcpServer struct {
@@ -38,22 +38,22 @@ type ISocket interface {
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) {
 	if addr == "" {
-		panic(log("addr == null"))
+		log4g.Error("服务器监听地址为空!")
 	}
 	server.SocketAddress = addr
 	listener, err := net.Listen(server.TcpVersion, server.SocketAddress)
 	if err != nil {
-		fmt.Println("监听出错")
+		log4g.Errorf("服务器监听出错,地址:%s,Error:%s",server.SocketAddress,err.Error())
 		return
 	}
 	server.Listener = listener
 	go server.run()
 }
 func (server *TcpServer) run() {
-	fmt.Println("服务器开始!")
+	log4g.Info("服务器开始运行!")
 	for {
 		if server.IsClosed(){
-			fmt.Println("服务器已经关闭!")
+			log4g.Info("服务器已经关闭!")
 			return
 		}
 		session, err := server.accept()
@@ -100,7 +100,7 @@ func (server *TcpServer) accept() (*SocketSession, error) {
 //创建一个新的TcpServer
 func NewTcpServer(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpServer {
 	if tcpVersion == "" {
-		panic(fmt.Sprintf("tcpVersion: == null"))
+		log4g.Error("tcpVersion: == null")
 	}
 	server := &TcpServer{
 		TcpVersion:    	tcpVersion,
@@ -128,7 +128,7 @@ func (server *TcpServer) Close() {
 		return
 	default:
 		server.Once.Do(func() {
-			fmt.Println("关闭服务器")
+			log4g.Info("关闭服务器")
 			close(server.done)
 			if server.Listener != nil {
 				server.Listener.Close()

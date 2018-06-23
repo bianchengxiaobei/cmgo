@@ -21,7 +21,7 @@ func LoadConfig(configPath string)  {
 	)
 	defer file.Close()
 	rootPath,_ := os.Getwd()
-	path := filepath.Join(rootPath,"/logConfig.txt")
+	path := filepath.Join(rootPath,configPath)
 	if _,err = os.Stat(path);err != nil{
 		//不存在创建
 		logConfig = LogConfig{

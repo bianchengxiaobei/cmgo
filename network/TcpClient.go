@@ -3,8 +3,8 @@ package network
 
 import (
 	"sync"
-	"fmt"
 	"net"
+	"github.com/bianchengxiaobei/cmgo/log4g"
 )
 
 const (
@@ -25,7 +25,7 @@ type TcpClient struct {
 //创建一个新的TcpServer
 func NewTcpClient(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpClient {
 	if tcpVersion == "" {
-		panic(fmt.Sprintf("tcpVersion: == null"))
+		panic("tcpVersion: == null")
 	}
 	client := &TcpClient{
 		TcpVersion:    		tcpVersion,
@@ -40,7 +40,7 @@ func (client *TcpClient)Connect(addr string){
 		conn net.Conn
 	)
 	if addr == "" {
-		panic(fmt.Sprintf("addr == null"))
+		log4g.Error("客户端连接地址为空！")
 	}
 	client.SocketAddress = addr
 	conn,err = net.DialTimeout(client.TcpVersion,client.SocketAddress,connectTimeout)
@@ -53,12 +53,12 @@ func (client *TcpClient)Connect(addr string){
 		client.waitGroup.Add(1)
 		client.run()
 	}
-	fmt.Println("连接成功")
+	log4g.Info("客户端连接成功！")
 }
 func (client *TcpClient)run(){
 	if client.session != nil{
 		if client.IsClosed(){
-			fmt.Println("客户端已经关闭!")
+			log4g.Info("客户端已经关闭!")
 			return
 		}
 		client.session.run(client)
@@ -100,7 +100,7 @@ func (client *TcpClient) Close(){
 		return
 	default:
 		client.Once.Do(func() {
-			fmt.Println("关闭客户端")
+			log4g.Info("关闭客户端")
 			close(client.done)
 			client.session.CloseChan()
 		})
