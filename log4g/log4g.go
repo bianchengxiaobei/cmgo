@@ -74,11 +74,27 @@ func Info(content string)  {
 		log.Println(content)
 	}
 }
+func Infof(content string,v ...interface{})  {
+	if logfile != nil{
+		logfile.SetPrefix("[Info]")
+		logfile.Printf(content,v)
+	}else{
+		log.Printf(content,v)
+	}
+}
 func Error(content string){
 	if logfile != nil{
 		logfile.SetPrefix("[Error]")
 		logfile.Panicln(content)
 	}else{
 		log.Panicln(content)
+	}
+}
+func Errorf(content string,v ...interface{}){
+	if logfile != nil{
+		logfile.SetPrefix("[Error]")
+		logfile.Panicf(content,v)
+	}else{
+		log.Panicf(content,v)
 	}
 }
