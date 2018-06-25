@@ -11,7 +11,6 @@ const (
 	connectTimeout = 5e9
 )
 type TcpClient struct {
-	SocketAddress string
 	lock          sync.Mutex
 	TcpVersion    string
 	waitGroup     sync.WaitGroup
@@ -42,8 +41,7 @@ func (client *TcpClient)Connect(addr string){
 	if addr == "" {
 		log4g.Error("客户端连接地址为空！")
 	}
-	client.SocketAddress = addr
-	conn,err = net.DialTimeout(client.TcpVersion,client.SocketAddress,connectTimeout)
+	conn,err = net.DialTimeout(client.TcpVersion,addr,connectTimeout)
 	if err != nil{
 		panic("连接失败")
 	}

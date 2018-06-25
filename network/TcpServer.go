@@ -8,7 +8,6 @@ import (
 )
 
 type TcpServer struct {
-	SocketAddress string
 	Listener      net.Listener
 	lock          sync.Mutex
 	TcpVersion    string
@@ -21,7 +20,6 @@ type TcpServer struct {
 	Sessions 	map[uint32]SocketSessionInterface
 }
 type SocketSessionConfig struct {
-	SocketAddr			string
 	TcpNoDelay         bool
 	TcpKeepAlive       bool
 	TcpKeepAlivePeriod time.Duration
@@ -40,10 +38,9 @@ func (server *TcpServer) Bind(addr string) error{
 	if addr == "" {
 		log4g.Error("服务器监听地址为空!")
 	}
-	server.SocketAddress = addr
-	listener, err := net.Listen(server.TcpVersion, server.SocketAddress)
+	listener, err := net.Listen(server.TcpVersion, addr)
 	if err != nil {
-		log4g.Errorf("服务器[%s]监听出错,错误:%s",server.SocketAddress,err.Error())
+		log4g.Errorf("服务器[%s]监听出错,错误:%s",addr,err.Error())
 		return err
 	}
 	server.Listener = listener
