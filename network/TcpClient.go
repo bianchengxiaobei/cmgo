@@ -17,9 +17,9 @@ type TcpClient struct {
 	SessionConfig *SocketSessionConfig
 	codec         Protocol
 	handler       EventHandleInterface
-	session		*SocketSession
+	Session       *SocketSession
 	sync.Once
-	done chan struct{}
+	done          chan struct{}
 }
 //创建一个新的TcpServer
 func NewTcpClient(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpClient {
@@ -47,19 +47,19 @@ func (client *TcpClient)Connect(addr string){
 	}
 	session := client.CreateSessionConnect(conn)
 	if session != nil{
-		client.session = session
+		client.Session = session
 		client.waitGroup.Add(1)
 		client.run()
 	}
 	log4g.Info("客户端连接成功！")
 }
 func (client *TcpClient)run(){
-	if client.session != nil{
+	if client.Session != nil{
 		if client.IsClosed(){
 			log4g.Info("客户端已经关闭!")
 			return
 		}
-		client.session.run(client)
+		client.Session.run(client)
 	}
 }
 //创建客户端session
@@ -100,7 +100,7 @@ func (client *TcpClient) Close(){
 		client.Once.Do(func() {
 			log4g.Info("关闭客户端")
 			close(client.done)
-			client.session.CloseChan()
+			client.Session.CloseChan()
 		})
 	}
 	client.waitGroup.Wait()
