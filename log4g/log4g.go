@@ -12,7 +12,7 @@ type LogConfig struct {
 	LogOutPath string
 }
 var logfile *log.Logger
-var logConfig LogConfig
+var logConfig *LogConfig
 func LoadConfig(configPath string)  {
 	var (
 		err error
@@ -24,7 +24,7 @@ func LoadConfig(configPath string)  {
 	path := filepath.Join(rootPath,configPath)
 	if _,err = os.Stat(path);err != nil{
 		//不存在创建
-		logConfig = LogConfig{
+		logConfig = &LogConfig{
 			LogToFile:false,
 			LogOutPath:"/output.log",
 		}
@@ -50,10 +50,10 @@ func LoadConfig(configPath string)  {
 		if err != nil{
 			panic(err)
 		}
-		logConfig = LogConfig{}
+		logConfig = &LogConfig{}
 		json.Unmarshal(data,logConfig)
 	}
-	if &logConfig != nil{
+	if logConfig != nil{
 		if logConfig.LogToFile{
 			if logfile == nil{
 				path = filepath.Join(rootPath,logConfig.LogOutPath)
@@ -77,9 +77,9 @@ func Info(content string)  {
 func Infof(content string,v ...interface{})  {
 	if logfile != nil{
 		logfile.SetPrefix("[Info]")
-		logfile.Printf(content,v)
+		logfile.Printf(content,v...)
 	}else{
-		log.Printf(content,v)
+		log.Printf(content,v...)
 	}
 }
 func Error(content string){
@@ -93,8 +93,8 @@ func Error(content string){
 func Errorf(content string,v ...interface{}){
 	if logfile != nil{
 		logfile.SetPrefix("[Error]")
-		logfile.Panicf(content,v)
+		logfile.Panicf(content,v...)
 	}else{
-		log.Panicf(content,v)
+		log.Panicf(content,v...)
 	}
 }
