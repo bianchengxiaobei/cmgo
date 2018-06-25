@@ -36,21 +36,21 @@ type ISocket interface {
 	IsClosed()	bool
 }
 //服务器开始监听断开
-func (server *TcpServer) Bind(addr string) {
+func (server *TcpServer) Bind(addr string) error{
 	if addr == "" {
 		log4g.Error("服务器监听地址为空!")
 	}
 	server.SocketAddress = addr
 	listener, err := net.Listen(server.TcpVersion, server.SocketAddress)
 	if err != nil {
-		log4g.Errorf("服务器监听出错,地址:%s,Error:%s",server.SocketAddress,err.Error())
-		return
+		log4g.Errorf("服务器[%s]监听出错,错误:%s",server.SocketAddress,err.Error())
+		return err
 	}
 	server.Listener = listener
 	go server.run()
+	return nil
 }
 func (server *TcpServer) run() {
-	log4g.Info("服务器开始运行!")
 	for {
 		if server.IsClosed(){
 			log4g.Info("服务器已经关闭!")
@@ -128,7 +128,6 @@ func (server *TcpServer) Close() {
 		return
 	default:
 		server.Once.Do(func() {
-			log4g.Info("关闭服务器")
 			close(server.done)
 			if server.Listener != nil {
 				server.Listener.Close()
