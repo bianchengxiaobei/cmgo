@@ -285,7 +285,7 @@ func (session *SocketSession) messageLoop(){
 		if dataLen == 0{
 			continue
 		}
-		dataBuffer.Write(data)
+		dataBuffer.Write(data[:dataLen])
 		for{
 			if dataBuffer.Len() < 0{
 				break
