@@ -13,10 +13,6 @@ const (
 var serverInitTime time.Time = time.Now()//服务器启动时刻
 type SocketConnect struct{
 	id	uint32
-	readBytes	uint32
-	writeBytes	uint32
-	readPacketNum	uint32
-	writePacketNum uint32
 	activeTime	int64
 	readTimeout	time.Duration
 	writeTimeout time.Duration
@@ -129,16 +125,25 @@ func (connect *SocketTcpConnect) Read(data []byte)(int,error){
 		}
 	}
 	if length,err:=connect.reader.Read(data);err == nil{
-		atomic.AddUint32(&connect.readBytes,uint32(length))
+		//atomic.AddUint32(&connect.readBytes,uint32(length))
 		return length,err
 	}
 	return 0,nil
 }
 func (connect *SocketTcpConnect) Write(data []byte)(int, error){
-	len,err:=connect.writer.Write(data)
-	if err == nil{
-		atomic.AddUint32(&connect.writeBytes,uint32(len))
+	if connect.writeTimeout > 0{
+		currentTime := wheel.Now()
+		if currentTime.Sub(connect.writeLastDeadTime) > (connect.writeTimeout >> 2){
+			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
+				return 0,err
+			}
+			connect.writeLastDeadTime = currentTime
+		}
 	}
+	len,err:=connect.writer.Write(data)
+	//if err == nil{
+	//	atomic.AddUint32(&connect.writeBytes,uint32(len))
+	//}
 	return len,err
 }
 

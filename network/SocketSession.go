@@ -14,25 +14,25 @@ import (
 
 const (
 	maxReadBufferLen = 4*1024
-	period		= 60 * 1e9
-	waitDuration = 3e9
+	period		= 60 * 1e9			//60s
+	waitDuration = 3e9				//3s
 )
 var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
 var ErrSessionClosed = errors.New("Session已经关闭!")
 var ErrSessionBlocked = errors.New("Session阻塞!")
 type SocketSession struct{
 	SocketConnectInterface
-	once       sync.Once
-	done       chan struct{}
-	lockNum    int32
-	readQueue  chan interface{}
-	writeQueue chan interface{}
-	handler    EventHandleInterface
-	period     time.Duration
-	wait       time.Duration
-	rwLock     sync.RWMutex
-	attrs      *cmattribute.ValuesContext
-	coder      Protocol
+	once          sync.Once
+	done          chan struct{}
+	lockNum       int32
+	readQueue     chan interface{}
+	writeQueue    chan interface{}
+	handler       EventHandleInterface
+	period        time.Duration
+	closeWaitTime time.Duration
+	rwLock        sync.RWMutex
+	attrs         *cmattribute.ValuesContext
+	coder         Protocol
 }
 type WriteMessage struct {
 	MsgId 		int
@@ -48,8 +48,9 @@ type SocketSessionInterface interface {
 	SetAttribute(key interface{}, value interface{})
 	SetReadChan(int)
 	SetWriteChan(int)
+	SetSesionCloseWaitTime(wait time.Duration)
 	CloseChan()
-	WriteMsg(msgId int,message interface{},timeout time.Duration) error
+	WriteMsg(msgId int,message interface{}) error
 	WriteBytes([]byte)error
 }
 //创建SocketSession和SocketConnection
@@ -57,10 +58,10 @@ func CreateSocketSession(conn net.Conn) *SocketSession{
 	connect := CreateTcpConnection(conn)
 	session := &SocketSession{
 		SocketConnectInterface : connect,
-		done:make(chan struct{}),
-		period:period,
-		wait:waitDuration,
-		attrs:cmattribute.NewValuesContext(nil),
+		done:                    make(chan struct{}),
+		period:                  period,
+		closeWaitTime:           waitDuration,
+		attrs:                   cmattribute.NewValuesContext(nil),
 	}
 	session.SocketConnectInterface.SetSocketSession(session)
 	session.SetWriteTimeout(IOTimeout)
@@ -105,6 +106,15 @@ func (session *SocketSession) RemoveAttribute(key interface{}) {
 	session.attrs.Delete(key)
 	session.rwLock.Unlock()
 }
+//设置关闭session等待时间
+func (session *SocketSession)SetSesionCloseWaitTime(wait time.Duration)  {
+	if wait < 1{
+		panic("cloaseWaitTime < 1")
+	}
+	session.rwLock.Lock()
+	session.closeWaitTime = wait
+	session.rwLock.Unlock()
+}
 func (session *SocketSession) SetReadChan(len int){
 	if len < 1{
 		panic("readChanLen < 1")
@@ -122,7 +132,7 @@ func (session *SocketSession) SetWriteChan(len int){
 	session.rwLock.Unlock()
 }
 //写消息
-func (session *SocketSession)WriteMsg(msgId int,message interface{},timeout time.Duration) error{
+func (session *SocketSession)WriteMsg(msgId int,message interface{}) error{
 	if session.IsClosed(){
 		return	ErrSessionClosed
 	}
@@ -133,7 +143,7 @@ func (session *SocketSession)WriteMsg(msgId int,message interface{},timeout time
 	select {
 	case session.writeQueue<-writeMsg:
 		break
-	case <-wheel.After(timeout):
+	case <-wheel.After(waitDuration):
 			return ErrSessionBlocked
 	}
 	return nil
@@ -223,7 +233,7 @@ LOOP:
 					break LOOP
 				}
 				counter = time.Now()
-				if time.Since(counter).Nanoseconds() > session.wait.Nanoseconds(){
+				if time.Since(counter).Nanoseconds() > session.closeWaitTime.Nanoseconds(){
 					break LOOP
 				}
 			}
@@ -320,7 +330,7 @@ func (session *SocketSession) gc(){
 		session.writeQueue = nil
 		close(session.readQueue)
 		session.readQueue = nil
-		session.SocketConnectInterface.Close((int)((int64)(session.wait)))
+		session.SocketConnectInterface.Close((int)((int64)(session.closeWaitTime)))
 	}
 	session.rwLock.Unlock()
 }
