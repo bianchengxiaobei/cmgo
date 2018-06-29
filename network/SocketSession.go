@@ -54,6 +54,7 @@ type SocketSessionInterface interface {
 	SetWriteChan(int)
 	SetSesionCloseWaitTime(wait time.Duration)
 	CloseChan()
+	IsClosed() bool
 	WriteMsg(msgId int,message interface{}) error
 	WriteBytes([]byte)error
 }
