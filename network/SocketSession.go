@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"errors"
 	"github.com/bianchengxiaobei/cmgo/log4g"
+	"container/list"
 )
 
 const (
@@ -39,7 +40,7 @@ type WriteMessage struct {
 	MsgData		interface{}
 }
 type InnerWriteMessage struct {
-	RoleId	[]int64
+	RoleId	list.List
 	MsgData interface{}
 }
 type SocketSessionInterface interface {
