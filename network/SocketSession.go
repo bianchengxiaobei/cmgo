@@ -40,7 +40,7 @@ type WriteMessage struct {
 	MsgData		interface{}
 }
 type InnerWriteMessage struct {
-	RoleId	list.List
+	RoleId	*list.List
 	MsgData interface{}
 }
 type SocketSessionInterface interface {
