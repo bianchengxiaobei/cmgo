@@ -302,7 +302,7 @@ func (session *SocketSession) messageLoop(){
 		}
 		dataBuffer.Write(data[:dataLen])
 		for{
-			if dataBuffer.Len() < 0{
+			if dataBuffer.Len() <= 0{
 				break
 			}
 			message,messageLen,err = session.coder.Decode(session,dataBuffer.Bytes())
