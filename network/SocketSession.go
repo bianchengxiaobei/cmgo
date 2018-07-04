@@ -39,7 +39,7 @@ type WriteMessage struct {
 	MsgData		interface{}
 }
 type InnerWriteMessage struct {
-	RoleId	[]int64
+	RoleId	[4]int64
 	MsgData interface{}
 }
 type SocketSessionInterface interface {
