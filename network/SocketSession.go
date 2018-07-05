@@ -38,10 +38,6 @@ type WriteMessage struct {
 	MsgId 		int
 	MsgData		interface{}
 }
-type InnerWriteMessage struct {
-	RoleId	[4]int64
-	MsgData interface{}
-}
 type SocketSessionInterface interface {
 	SocketConnectInterface
 	GetConn() net.Conn
