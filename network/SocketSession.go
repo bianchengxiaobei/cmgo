@@ -246,12 +246,11 @@ LOOP:
 			session.handler.MessageReceived(session,inData)
 		case outData = <-session.writeQueue:
 			if err = session.coder.Encode(session,outData);err != nil{
-				
+				session.CloseChan()
 			}
 			session.handler.MessageSent(session,outData)
 		case <-wheel.After(session.period)://定时
 			session.handler.SessionPeriod(session)
-
 		}
 	}
 }
