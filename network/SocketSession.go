@@ -276,12 +276,12 @@ func (session *SocketSession) messageLoop(){
 	)
 	//close第一次
 	defer func() {
-		if r := recover(); r != nil {
-			log4g.Error("Session已经关闭,出错!")
-		}
+		data = nil
+		dataBuffer = nil
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.CloseChan() //close(done)
-		if err != nil{
+		if r := recover(); r != nil {
+			log4g.Error("Session已经关闭,出错!")
 			session.handler.ExceptionCaught(session,err)
 		}
 	}()
