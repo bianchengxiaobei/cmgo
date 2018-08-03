@@ -5,12 +5,14 @@ import (
 	"io"
 	"time"
 	"sync/atomic"
+	"errors"
 )
 
 const (
 	IOTimeout = 1e9	//1s
 )
 var serverInitTime time.Time = time.Now()//服务器启动时刻
+var TcpConnNullError = errors.New("TcpConn == null!")
 type SocketConnect struct{
 	id	uint32
 	activeTime	int64
@@ -45,9 +47,9 @@ type SocketConnectInterface interface {
 }
 var connectId uint32
 //创建TcpConnect
-func CreateTcpConnection(conn net.Conn) *SocketTcpConnect {
+func CreateTcpConnection(conn net.Conn) (*SocketTcpConnect,error) {
 	if conn == nil{
-		panic("conn == null")
+		return nil,TcpConnNullError
 	}
 	localAddr := conn.LocalAddr().String()
 	peerAddr := conn.RemoteAddr().String()
@@ -62,7 +64,7 @@ func CreateTcpConnection(conn net.Conn) *SocketTcpConnect {
 			localAddr:localAddr,
 			remoteAddr:peerAddr,
 		},
-	}
+	},nil
 }
 func (connect *SocketConnect) Id() uint32{
 	return connect.id

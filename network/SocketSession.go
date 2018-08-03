@@ -14,7 +14,7 @@ import (
 
 const (
 	maxReadBufferLen = 4*1024
-	period		= 60 * 1e9			//60s
+	period		= 5e9			//5s
 	waitDuration = 3e9				//3s
 )
 var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
@@ -52,6 +52,7 @@ type SocketSessionInterface interface {
 	SetAttribute(key interface{}, value interface{})
 	SetReadChan(int)
 	SetWriteChan(int)
+	SetPeriod(duration time.Duration)
 	SetSesionCloseWaitTime(wait time.Duration)
 	CloseChan()
 	IsClosed() bool
@@ -59,8 +60,11 @@ type SocketSessionInterface interface {
 	WriteBytes([]byte)error
 }
 //创建SocketSession和SocketConnection
-func CreateSocketSession(conn net.Conn) *SocketSession{
-	connect := CreateTcpConnection(conn)
+func CreateSocketSession(conn net.Conn) (*SocketSession,error){
+	connect,err := CreateTcpConnection(conn)
+	if err != nil{
+		return nil, err
+	}
 	session := &SocketSession{
 		SocketConnectInterface : connect,
 		done:                    make(chan struct{}),
@@ -71,7 +75,7 @@ func CreateSocketSession(conn net.Conn) *SocketSession{
 	session.SocketConnectInterface.SetSocketSession(session)
 	session.SetWriteTimeout(IOTimeout)
 	session.SetReadTimeout(IOTimeout)
-	return session
+	return session,nil
 }
 func (session *SocketSession) GetConn() net.Conn{
 	if tcpConn,ok := session.SocketConnectInterface.(*SocketTcpConnect);ok{
@@ -135,6 +139,12 @@ func (session *SocketSession) SetWriteChan(len int){
 	session.rwLock.Lock()
 	session.writeQueue = make(chan interface{},len)
 	session.rwLock.Unlock()
+}
+func (session *SocketSession)SetPeriod(duration time.Duration){
+	if duration <= 0{
+		panic("period < 0")
+	}
+	session.period = duration
 }
 //写消息
 func (session *SocketSession)WriteMsg(msgId int,message interface{}) error{

@@ -5,11 +5,14 @@ import (
 	"sync"
 	"net"
 	"github.com/bianchengxiaobei/cmgo/log4g"
+	"errors"
 )
 
 const (
 	connectTimeout = 5e9
 )
+var NotTcpConnError = errors.New("Not TcpConn!")
+var ConnectAddressNilError = errors.New("客户端连接地址为空！")
 type TcpClient struct {
 	lock          sync.Mutex
 	TcpVersion    string
@@ -33,25 +36,29 @@ func NewTcpClient(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpCli
 	}
 	return client
 }
-func (client *TcpClient)Connect(addr string){
+func (client *TcpClient)Connect(addr string) error{
 	var(
 		err error
 		conn net.Conn
+		session *SocketSession
 	)
 	if addr == "" {
-		log4g.Error("客户端连接地址为空！")
+		return ConnectAddressNilError
 	}
 	conn,err = net.DialTimeout(client.TcpVersion,addr,connectTimeout)
 	if err != nil{
-		panic("连接失败")
+		return err
 	}
-	session := client.CreateSessionConnect(conn)
+	session,err = client.CreateSessionConnect(conn)
+	if err != nil{
+		return err
+	}
 	if session != nil{
 		client.Session = session
 		client.waitGroup.Add(1)
 		client.run()
 	}
-	log4g.Info("客户端连接成功！")
+	return nil
 }
 func (client *TcpClient)run(){
 	if client.Session != nil{
@@ -63,25 +70,29 @@ func (client *TcpClient)run(){
 	}
 }
 //创建客户端session
-func (client *TcpClient)CreateSessionConnect(conn net.Conn) *SocketSession{
+func (client *TcpClient)CreateSessionConnect(conn net.Conn) (*SocketSession,error){
 	var (
 		tcpConn *net.TCPConn
 		ok bool
 	)
-	session := CreateSocketSession(conn)
+	session,err := CreateSocketSession(conn)
+	if err != nil{
+		return nil, err
+	}
 	if tcpConn,ok = conn.(*net.TCPConn);!ok{
-		panic("not tcpConn")
+		return nil, NotTcpConnError
 	}
 	session.SetProtocol(client.codec)
 	session.SetReadChan(client.SessionConfig.ReadChanLen)
 	session.SetWriteChan(client.SessionConfig.WriteChanLen)
+	session.SetPeriod(client.SessionConfig.PeriodTime)
 	session.SetHandler(client.handler)
 	tcpConn.SetNoDelay(client.SessionConfig.TcpNoDelay)
 	tcpConn.SetKeepAlive(client.SessionConfig.TcpKeepAlive)
 	tcpConn.SetKeepAlivePeriod(client.SessionConfig.TcpKeepAlivePeriod)
 	tcpConn.SetReadBuffer(client.SessionConfig.TcpReadBuffSize)
 	tcpConn.SetWriteBuffer(client.SessionConfig.TcpWriteBuffSize)
-	return session
+	return session,nil
 }
 //设置编解码
 func (client *TcpClient) SetProtocolCodec(protocol Protocol) {

@@ -27,6 +27,7 @@ type SocketSessionConfig struct {
 	TcpWriteBuffSize   int
 	ReadChanLen			int
 	WriteChanLen		int
+	PeriodTime		time.Duration
 }
 type ISocket interface {
 	run()
@@ -77,14 +78,18 @@ func (server *TcpServer) accept() (*SocketSession, error) {
 		}
 		return nil, err
 	}
-	session := CreateSocketSession(tcpConn)
+	session,err := CreateSocketSession(tcpConn)
+	if err != nil{
+		return nil, err
+	}
 	if conn, ok = session.GetConn().(*net.TCPConn); !ok {
-		panic("not a tcpConn")
+		return nil, NotTcpConnError
 	}
 	session.SetProtocol(server.codec)
 	session.SetHandler(server.handler)
 	session.SetReadChan(server.SessionConfig.ReadChanLen)
 	session.SetWriteChan(server.SessionConfig.WriteChanLen)
+	session.SetPeriod(server.SessionConfig.PeriodTime)
 	conn.SetNoDelay(server.SessionConfig.TcpNoDelay)
 	conn.SetKeepAlive(server.SessionConfig.TcpKeepAlive)
 	conn.SetKeepAlivePeriod(server.SessionConfig.TcpKeepAlivePeriod)
