@@ -37,11 +37,11 @@ type ISocket interface {
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) error{
 	if addr == "" {
-		log4g.Error("服务器监听地址为空!")
+		return ConnectAddressNilError
 	}
 	listener, err := net.Listen(server.TcpVersion, addr)
 	if err != nil {
-		log4g.Errorf("服务器[%s]监听出错,错误:%s",addr,err.Error())
+		//log4g.Errorf("服务器[%s]监听出错,错误:%s",addr,err.Error())
 		return err
 	}
 	server.Listener = listener
