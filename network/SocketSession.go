@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"sync/atomic"
 	"errors"
-	"github.com/bianchengxiaobei/cmgo/log4g"
 )
 
 const (
@@ -228,7 +227,7 @@ func (session *SocketSession) workLoop(socket ISocket){
 	client,_ = socket.(*TcpClient)
 	//关闭session
 	defer func() {
-		log4g.Infof("[Session:id:%d]关闭!",session.Id())
+		//log4g.Infof("[Session:id:%d]关闭!",session.Id())
 		//防止messageLoop关闭
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.handler.SessionClosed(session)
@@ -281,7 +280,6 @@ func (session *SocketSession) messageLoop(){
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.CloseChan() //close(done)
 		if r := recover(); r != nil {
-			log4g.Error("Session已经关闭,出错!")
 			session.handler.ExceptionCaught(session,err)
 		}
 	}()
