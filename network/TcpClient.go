@@ -123,5 +123,4 @@ func (client *TcpClient) IsClosed() bool{
 	default:
 		return false
 	}
-	net.DialUDP()
 }
