@@ -12,6 +12,7 @@ const (
 	connectTimeout = 5e9
 )
 var NotTcpConnError = errors.New("Not TcpConn!")
+var NotKcpConnError = errors.New("Not KcpConn!")
 var ConnectAddressNilError = errors.New("客户端连接地址为空！")
 type TcpClient struct {
 	lock          sync.Mutex
@@ -75,7 +76,7 @@ func (client *TcpClient)CreateSessionConnect(conn net.Conn) (*SocketSession,erro
 		tcpConn *net.TCPConn
 		ok bool
 	)
-	session,err := CreateSocketSession(conn)
+	session,err := CreateTcpSocketSession(conn)
 	if err != nil{
 		return nil, err
 	}
@@ -123,4 +124,7 @@ func (client *TcpClient) IsClosed() bool{
 	default:
 		return false
 	}
+}
+func (client *TcpClient) DoneWaitGroup(){
+	client.waitGroup.Done()
 }

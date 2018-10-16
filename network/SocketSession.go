@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"sync/atomic"
 	"errors"
+	"github.com/xtaci/kcp-go"
 )
 
 const (
@@ -59,8 +60,25 @@ type SocketSessionInterface interface {
 	WriteBytes([]byte)error
 }
 //创建SocketSession和SocketConnection
-func CreateSocketSession(conn net.Conn) (*SocketSession,error){
+func CreateTcpSocketSession(conn net.Conn) (*SocketSession,error){
 	connect,err := CreateTcpConnection(conn)
+	if err != nil{
+		return nil, err
+	}
+	session := &SocketSession{
+		SocketConnectInterface : connect,
+		done:                    make(chan struct{}),
+		period:                  period,
+		closeWaitTime:           waitDuration,
+		attrs:                   cmattribute.NewValuesContext(nil),
+	}
+	session.SocketConnectInterface.SetSocketSession(session)
+	session.SetWriteTimeout(IOTimeout)
+	session.SetReadTimeout(IOTimeout)
+	return session,nil
+}
+func CreateKcpSocketSession(conn *kcp.UDPSession)(*SocketSession,error){
+	connect,err := CreateKcpConnection(conn)
 	if err != nil{
 		return nil, err
 	}
@@ -79,6 +97,8 @@ func CreateSocketSession(conn net.Conn) (*SocketSession,error){
 func (session *SocketSession) GetConn() net.Conn{
 	if tcpConn,ok := session.SocketConnectInterface.(*SocketTcpConnect);ok{
 		return tcpConn.conn
+	}else if kcpConn,ok := session.SocketConnectInterface.(*SocketKcpConnect);ok{
+		return kcpConn.conn
 	}
 	return nil
 }
@@ -220,11 +240,7 @@ func (session *SocketSession) workLoop(socket ISocket){
 		outData interface{}
 		counter time.Time
 		err error
-		server *TcpServer
-		client *TcpClient
 	)
-	server,_ = socket.(*TcpServer)
-	client,_ = socket.(*TcpClient)
 	//关闭session
 	defer func() {
 		//log4g.Infof("[Session:id:%d]关闭!",session.Id())
@@ -232,11 +248,7 @@ func (session *SocketSession) workLoop(socket ISocket){
 		atomic.AddInt32(&(session.lockNum),-1)
 		session.handler.SessionClosed(session)
 		session.gc()
-		if server != nil{
-			server.waitGroup.Done()
-		}else{
-			client.waitGroup.Done()
-		}
+		socket.DoneWaitGroup()
 	}()
 LOOP:
 	for{

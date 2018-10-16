@@ -33,6 +33,7 @@ type ISocket interface {
 	run()
 	Close()
 	IsClosed()	bool
+	DoneWaitGroup()
 }
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) error{
@@ -78,7 +79,7 @@ func (server *TcpServer) accept() (*SocketSession, error) {
 		}
 		return nil, err
 	}
-	session,err := CreateSocketSession(tcpConn)
+	session,err := CreateTcpSocketSession(tcpConn)
 	if err != nil{
 		return nil, err
 	}
@@ -150,4 +151,7 @@ func (server  *TcpServer) IsClosed() bool{
 	default:
 		return false
 	}
+}
+func (server *TcpServer) DoneWaitGroup(){
+	server.waitGroup.Done()
 }

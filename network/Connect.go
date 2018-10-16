@@ -6,6 +6,7 @@ import (
 	"time"
 	"sync/atomic"
 	"errors"
+	"github.com/xtaci/kcp-go"
 )
 
 const (
@@ -13,6 +14,7 @@ const (
 )
 var serverInitTime time.Time = time.Now()//服务器启动时刻
 var TcpConnNullError = errors.New("TcpConn == null!")
+var KcpConnNullError = errors.New("KcpConn == null!")
 type SocketConnect struct{
 	id	uint32
 	activeTime	int64
@@ -30,6 +32,11 @@ type SocketTcpConnect struct{
 	writer	io.Writer
 	SocketConnect
 }
+type SocketKcpConnect struct {
+	conn *kcp.UDPSession
+	SocketConnect
+}
+
 type SocketConnectInterface interface {
 	Id() uint32
 	LocalAddr() string
@@ -57,6 +64,24 @@ func CreateTcpConnection(conn net.Conn) (*SocketTcpConnect,error) {
 		conn:conn,
 		reader:io.Reader(conn),
 		writer:io.Writer(conn),
+		SocketConnect:SocketConnect{
+			id:atomic.AddUint32(&connectId,1),
+			readTimeout:IOTimeout,
+			writeTimeout:IOTimeout,
+			localAddr:localAddr,
+			remoteAddr:peerAddr,
+		},
+	},nil
+}
+//创建KCP连接
+func CreateKcpConnection(conn *kcp.UDPSession)(*SocketKcpConnect,error){
+	if conn == nil{
+		return nil,KcpConnNullError
+	}
+	localAddr := conn.LocalAddr().String()
+	peerAddr := conn.RemoteAddr().String()
+	return &SocketKcpConnect{
+		conn:conn,
 		SocketConnect:SocketConnect{
 			id:atomic.AddUint32(&connectId,1),
 			readTimeout:IOTimeout,
@@ -113,6 +138,12 @@ func (connect *SocketTcpConnect) Close(waitSecondTime int){
 		connect.conn = nil
 	}
 }
+func (connect *SocketKcpConnect)Close(waitSecondTime int){
+	if connect.conn != nil{
+		connect.conn.Close()
+		connect.conn = nil
+	}
+}
 func (connect *SocketConnect) SetSocketSession(session SocketSessionInterface){
 	connect.session = session
 }
@@ -127,6 +158,22 @@ func (connect *SocketTcpConnect) Read(data []byte)(int,error){
 		}
 	}
 	if length,err:=connect.reader.Read(data);err == nil{
+		//atomic.AddUint32(&connect.readBytes,uint32(length))
+		return length,err
+	}
+	return 0,nil
+}
+func (connect *SocketKcpConnect)Read(data []byte)(int,error)  {
+	if connect.readTimeout > 0{
+		currentTime := wheel.Now()
+		if currentTime.Sub(connect.readLastDeadTime) > (connect.readTimeout >> 2){
+			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
+				return 0,err
+			}
+			connect.readLastDeadTime = currentTime
+		}
+	}
+	if length,err:=connect.conn.Read(data);err == nil{
 		//atomic.AddUint32(&connect.readBytes,uint32(length))
 		return length,err
 	}
@@ -148,7 +195,22 @@ func (connect *SocketTcpConnect) Write(data []byte)(int, error){
 	//}
 	return len,err
 }
-
+func (connect *SocketKcpConnect)Write(data []byte)(int,error)  {
+	if connect.writeTimeout > 0{
+		currentTime := wheel.Now()
+		if currentTime.Sub(connect.writeLastDeadTime) > (connect.writeTimeout >> 2){
+			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
+				return 0,err
+			}
+			connect.writeLastDeadTime = currentTime
+		}
+	}
+	len,err:=connect.conn.Write(data)
+	//if err == nil{
+	//	atomic.AddUint32(&connect.writeBytes,uint32(len))
+	//}
+	return len,err
+}
 
 
 
