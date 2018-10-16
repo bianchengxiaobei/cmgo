@@ -61,6 +61,9 @@ func (client *TcpClient)Connect(addr string) error{
 	}
 	return nil
 }
+func (client *TcpClient)Bind(addr string) error{
+	return nil
+}
 func (client *TcpClient)run(){
 	if client.Session != nil{
 		if client.IsClosed(){

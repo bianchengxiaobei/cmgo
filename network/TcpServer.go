@@ -34,6 +34,10 @@ type ISocket interface {
 	Close()
 	IsClosed()	bool
 	DoneWaitGroup()
+	Bind(addr string) error
+	Connect(addr string) error
+	SetProtocolCodec(protocol Protocol)
+	SetMessageHandler(handler EventHandleInterface)
 }
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) error{
@@ -47,6 +51,9 @@ func (server *TcpServer) Bind(addr string) error{
 	}
 	server.Listener = listener
 	go server.run()
+	return nil
+}
+func (server *TcpServer)Connect(addr string) error{
 	return nil
 }
 func (server *TcpServer) run() {
