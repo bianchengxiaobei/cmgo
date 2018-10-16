@@ -10,7 +10,6 @@ import (
 type KcpServer struct {
 	Listener      *kcp.Listener
 	lock          sync.Mutex
-	TcpVersion    string
 	waitGroup     sync.WaitGroup
 	SessionConfig *SocketSessionConfig
 	codec         Protocol
@@ -32,6 +31,9 @@ func (server *KcpServer) Bind(addr string) error{
 	server.Listener.SetWriteBuffer(4 * 1024 * 1024)
 	server.Listener.SetDSCP(46)
 	go server.run()
+	return nil
+}
+func (server *KcpServer)Connect(addr string) error{
 	return nil
 }
 func (server *KcpServer) run() {
@@ -118,4 +120,22 @@ func (server  *KcpServer) IsClosed() bool{
 }
 func (server *KcpServer) DoneWaitGroup(){
 	server.waitGroup.Done()
+}
+//创建一个新的KcpServer
+func NewKcpServer(sessionConfig *SocketSessionConfig) *KcpServer {
+	server := &KcpServer{
+		SessionConfig: 	sessionConfig,
+		Sessions:make(map[uint32]SocketSessionInterface),
+		done:			make(chan struct{}),
+	}
+	return server
+}
+//设置编解码
+func (server *KcpServer) SetProtocolCodec(protocol Protocol) {
+	server.codec = protocol
+}
+
+//设置消息处理器
+func (server *KcpServer) SetMessageHandler(handler EventHandleInterface) {
+	server.handler = handler
 }
