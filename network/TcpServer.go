@@ -38,6 +38,7 @@ type ISocket interface {
 	Connect(addr string) error
 	SetProtocolCodec(protocol Protocol)
 	SetMessageHandler(handler EventHandleInterface)
+	GetSessionConfig()*SocketSessionConfig
 }
 //服务器开始监听断开
 func (server *TcpServer) Bind(addr string) error{
@@ -161,4 +162,7 @@ func (server  *TcpServer) IsClosed() bool{
 }
 func (server *TcpServer) DoneWaitGroup(){
 	server.waitGroup.Done()
+}
+func (server *TcpServer)GetSessionConfig()*SocketSessionConfig{
+	return server.SessionConfig
 }

@@ -3,7 +3,7 @@ package network
 import (
 	"sync"
 	"github.com/xtaci/kcp-go"
-	"log4g"
+	"github.com/bianchengxiaobei/cmgo/log4g"
 	"time"
 )
 
@@ -138,4 +138,7 @@ func (server *KcpServer) SetProtocolCodec(protocol Protocol) {
 //设置消息处理器
 func (server *KcpServer) SetMessageHandler(handler EventHandleInterface) {
 	server.handler = handler
+}
+func (server *KcpServer)GetSessionConfig()*SocketSessionConfig{
+	return server.SessionConfig
 }

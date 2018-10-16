@@ -131,3 +131,6 @@ func (client *TcpClient) IsClosed() bool{
 func (client *TcpClient) DoneWaitGroup(){
 	client.waitGroup.Done()
 }
+func (server *TcpClient)GetSessionConfig()*SocketSessionConfig{
+	return server.SessionConfig
+}
