@@ -73,6 +73,7 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 	len ,err := server.Listener.Read(server.readBuffer)
 	if len > 0{
 		content := string(server.readBuffer[:len])
+		fmt.Println(content)
 		if strings.Contains(content,";"){
 			a := strings.Split(content, ";")
 			clientId, err = strconv.Atoi(a[1])

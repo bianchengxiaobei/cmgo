@@ -27,8 +27,8 @@ func (server *KcpServer) Bind(addr string) error{
 		return err
 	}
 	server.Listener = l.(*kcp.Listener)
-	server.Listener.SetReadBuffer(4 * 1024 * 1024)
-	server.Listener.SetWriteBuffer(4 * 1024 * 1024)
+	server.Listener.SetReadBuffer(1024)
+	server.Listener.SetWriteBuffer(1024)
 	server.Listener.SetDSCP(46)
 	go server.run()
 	return nil
@@ -81,9 +81,9 @@ func (server *KcpServer) accept() (*SocketSession, error) {
 	kcpSess.SetReadBuffer(server.SessionConfig.TcpReadBuffSize)
 	kcpSess.SetWriteBuffer(server.SessionConfig.TcpWriteBuffSize)
 	kcpSess.SetStreamMode(true)
-	kcpSess.SetWindowSize(128, 128)
+	kcpSess.SetWindowSize(300, 300)
 	kcpSess.SetNoDelay(1, 10, 2, 1)
-	kcpSess.SetDSCP(46)
+	//kcpSess.SetDSCP(46)
 	kcpSess.SetMtu(1400)
 	kcpSess.SetACKNoDelay(false)
 	kcpSess.SetReadDeadline(time.Now().Add(time.Hour))

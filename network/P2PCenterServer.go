@@ -17,7 +17,7 @@ type P2PCenterServer struct {
 	ServerAddrByteMap	map[int32][]byte
 	ServerAddrMap	map[int32]*net.UDPAddr
 	ClientAddrMap	map[int32]*net.UDPAddr
-	sync.Locker
+	lock         sync.Mutex
 }
 func NewP2PCenterServer()*P2PCenterServer{
 	server := &P2PCenterServer{
@@ -37,6 +37,7 @@ func (server *P2PCenterServer)Bind(addr string) error{
 	if err != nil{
 		return  err
 	}
+	fmt.Println("服务器开始运行")
 	for {
 		s,err := conn.Accept()
 		if err != nil{
@@ -57,13 +58,16 @@ func (server *P2PCenterServer)HandlerConn(session *kcp.UDPSession){
 		}
 		if len > 0 {
 			content := string(server.readBuffer[:len])
+			fmt.Println(content)
 			if content == "Server" {
+				fmt.Println("35325")
 				id := server.GetServerId()
 				udpAddr := session.RemoteAddr().(*net.UDPAddr)
 				server.ServerAddrMap[id] = udpAddr
 				server.ServerAddrByteMap[id] = []byte(udpAddr.String())
 				server.ServerConnMap[id] = session
 			} else if content == "Client" {
+				fmt.Println("fwewe")
 				id := server.GetClientId()
 				udpAddr := session.RemoteAddr().(*net.UDPAddr)
 				server.ClientAddrMap[id] = udpAddr
@@ -73,6 +77,7 @@ func (server *P2PCenterServer)HandlerConn(session *kcp.UDPSession){
 				break
 			} else {
 				//服务器发送的客户端id，请求客户端开始向他发送验证打洞数据
+				fmt.Println("fewg")
 				id, err := strconv.Atoi(content)
 				if err == nil {
 					id3 := int32(id)
@@ -92,20 +97,20 @@ func (server *P2PCenterServer)HandlerConn(session *kcp.UDPSession){
 	}
 }
 func (server *P2PCenterServer)GetServerId()int32  {
-	server.Lock()
+	server.lock.Lock()
 	server.serverId++
-	server.Unlock()
+	server.lock.Unlock()
 	return server.serverId
 }
 func (server *P2PCenterServer)GetClientId()int32{
-	server.Lock()
+	server.lock.Lock()
 	server.clientId++
-	server.Unlock()
+	server.lock.Unlock()
 	return server.clientId
 }
 func (server *P2PCenterServer)DeleteClient(id int32){
-	server.Lock()
-	defer server.Unlock()
+	server.lock.Lock()
+	defer server.lock.Unlock()
 	delete(server.ClientConnMap, id)
 	delete(server.ClientAddrMap, id)
 	server.clientId--
