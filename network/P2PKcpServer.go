@@ -3,10 +3,10 @@ package network
 import (
 	"github.com/xtaci/kcp-go"
 	"sync"
-	"log4g"
 	"time"
 	"strings"
 	"strconv"
+	"github.com/bianchengxiaobei/cmgo/log4g"
 	"fmt"
 	"net"
 )
