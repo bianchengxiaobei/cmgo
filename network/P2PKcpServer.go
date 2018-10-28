@@ -14,6 +14,7 @@ import (
 type P2PKcpServer struct {
 	Listener      *net.UDPConn
 	localAddr	*net.UDPAddr
+	remoteAddr  *net.UDPAddr
 	lock          sync.Mutex
 	waitGroup     sync.WaitGroup
 	readBuffer		[]byte
@@ -29,18 +30,20 @@ func (server *P2PKcpServer) Bind(addr string) error{
 		return ConnectAddressNilError
 	}
 	udpAddr,err := net.ResolveUDPAddr("udp",addr)
-
+	server.remoteAddr = udpAddr
 	l,err := net.DialUDP("udp",nil,udpAddr)
+	//l,err := net.ListenUDP("udp",localAddr)
 	if err != nil{
 		return err
 	}
 	server.Listener = l
 	server.localAddr = l.LocalAddr().(*net.UDPAddr)
 	log4g.Infof("本地地址:%s",server.localAddr.String())
-	server.Listener.SetReadBuffer(128)
-	server.Listener.SetWriteBuffer(128)
+	server.Listener.SetReadBuffer(512)
+	server.Listener.SetWriteBuffer(512)
 	//发送自己网关的id
 	server.Listener.Write([]byte("Server"))
+	//server.Listener.WriteToUDP([]byte("Server"),udpAddr)
 	go server.run()
 	return nil
 }
@@ -59,6 +62,9 @@ func (server *P2PKcpServer) run() {
 				continue
 			}
 		}
+		if session == nil{
+			continue
+		}
 		server.waitGroup.Add(1)
 		session.run(server)
 	}
@@ -72,12 +78,22 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 		clientAddrString string
 		clientId         int
 		clientAddr	*net.UDPAddr
+		//serverAddr	*net.UDPAddr
 		len int
 		err error
 	)
+	fmt.Println("11")
 	len ,err = server.Listener.Read(server.readBuffer)
+	//len,_ ,err = server.Listener.ReadFrom(server.readBuffer)
+	if err != nil{
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	fmt.Println("22")
 	if len > 0{
+		fmt.Println("33")
 		content := string(server.readBuffer[:len])
+		fmt.Println("44")
 		fmt.Println(content)
 		if strings.Contains(content,";"){
 			a := strings.Split(content, ";")
@@ -86,20 +102,29 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 				fmt.Println(err.Error())
 			}
 			clientAddrString = a[0]
+		}else{
+			return nil, nil
 		}
 	}
+	l,err := net.DialUDP("udp",nil,server.remoteAddr)
+	if err != nil{
+		return nil,err
+	}
+	l.Write([]byte("ServerClient"))
 	clientAddr, err = net.ResolveUDPAddr("udp", clientAddrString)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(clientAddr)
-	clientC, err := net.DialUDP("udp", server.localAddr, clientAddr)
+	clientC, err := net.DialUDP("udp", l.LocalAddr().(*net.UDPAddr), clientAddr)
 	if err != nil{
 		fmt.Println(err.Error())
 	}
 	//随意往客户端发送一个确认消息
 	clientC.Write([]byte("Hello"))
+	fmt.Println("55")
 	server.Listener.Write([]byte(strconv.Itoa(clientId)))
+	fmt.Println("66")
 	len,err = clientC.Read(server.readBuffer)
 	if err == nil && len > 0{
 		clientContent := string(server.readBuffer[:len])
@@ -174,7 +199,7 @@ func (server *P2PKcpServer) DoneWaitGroup(){
 //创建一个新的KcpServer
 func NewP2PKcpServer(sessionConfig *SocketSessionConfig) *P2PKcpServer {
 	server := &P2PKcpServer{
-		readBuffer:make([]byte,128),
+		readBuffer:make([]byte,1024),
 		SessionConfig: 	sessionConfig,
 		Sessions:make(map[uint32]SocketSessionInterface),
 		done:			make(chan struct{}),
