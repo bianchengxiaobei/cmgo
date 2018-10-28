@@ -12,6 +12,7 @@ type P2PCenterServer struct {
 	serverId          int32
 	clientId          int32
 	Conn              *net.UDPConn
+	ServerConn			*net.UDPAddr
 	ServerAddrByteMap map[int32][]byte
 	ServerAddrMap     map[int32]*net.UDPAddr
 	ClientAddrMap     map[int32]*net.UDPAddr
@@ -53,24 +54,26 @@ func (server *P2PCenterServer) HandlerConn(udpAddr *net.UDPAddr, len int) {
 	if len > 0 {
 		content := string(server.readBuffer[:len])
 		if content == "Server" {
-			id := server.GetServerId()
-			fmt.Println("服务器远程地址:" + udpAddr.String())
-			server.ServerAddrMap[id] = udpAddr
-			server.ServerAddrByteMap[id] = []byte(udpAddr.String())
+			server.ServerConn = udpAddr
 		} else if content == "Client" {
 			id := server.GetClientId()
 			fmt.Println("客户端远程地址:" + udpAddr.String())
 			server.ClientAddrMap[id] = udpAddr
 			clientAddrAndId := fmt.Sprintf("%s;%d", udpAddr.String(), id)
-			server.Conn.WriteTo([]byte(clientAddrAndId), server.ServerAddrMap[1]) //这里1写死，本来是动态负载均衡网关id
-		} else {
+			server.Conn.WriteToUDP([]byte(clientAddrAndId), server.ServerConn)
+		}else if content == "ServerClient"{
+			id := server.GetServerId()
+			fmt.Println("服务器远程地址:" + udpAddr.String())
+			server.ServerAddrMap[id] = udpAddr
+			server.ServerAddrByteMap[id] = []byte(udpAddr.String())
+		}else {
 			//服务器发送的客户端id，请求客户端开始向他发送验证打洞数据
 			id, err := strconv.Atoi(content)
 			if err == nil {
 				id3 := int32(id)
 				con := server.ClientAddrMap[id3]
 				if con != nil {
-					len, err = server.Conn.WriteTo(server.ServerAddrByteMap[1], con)
+					len, err = server.Conn.WriteToUDP(server.ServerAddrByteMap[id3], con)
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -98,5 +101,6 @@ func (server *P2PCenterServer) DeleteClient(id int32) {
 	server.lock.Lock()
 	defer server.lock.Unlock()
 	delete(server.ClientAddrMap, id)
-	server.clientId--
+	delete(server.ServerAddrByteMap,id)
+	delete(server.ServerAddrMap,id)
 }
