@@ -77,6 +77,7 @@ func (server *P2PCenterServer) HandlerConn(udpAddr *net.UDPAddr, len int) {
 					if err != nil {
 						fmt.Println(err)
 					}
+
 					server.DeleteClient(id3)
 				}
 			} else {
