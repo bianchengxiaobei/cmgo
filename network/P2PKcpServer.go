@@ -3,16 +3,16 @@ package network
 import (
 	"github.com/xtaci/kcp-go"
 	"sync"
-	"time"
 	"strings"
 	"strconv"
 	"github.com/bianchengxiaobei/cmgo/log4g"
 	"fmt"
 	"net"
+	"time"
 )
 
 type P2PKcpServer struct {
-	Listener      *kcp.UDPSession
+	Listener      *net.UDPConn
 	localAddr	*net.UDPAddr
 	lock          sync.Mutex
 	waitGroup     sync.WaitGroup
@@ -28,12 +28,15 @@ func (server *P2PKcpServer) Bind(addr string) error{
 	if addr == "" {
 		return ConnectAddressNilError
 	}
-	l,err := kcp.Dial(addr)
+	udpAddr,err := net.ResolveUDPAddr("udp",addr)
+
+	l,err := net.DialUDP("udp",nil,udpAddr)
 	if err != nil{
 		return err
 	}
-	server.Listener = l.(*kcp.UDPSession)
+	server.Listener = l
 	server.localAddr = l.LocalAddr().(*net.UDPAddr)
+	log4g.Infof("本地地址:%s",server.localAddr.String())
 	server.Listener.SetReadBuffer(128)
 	server.Listener.SetWriteBuffer(128)
 	//发送自己网关的id
@@ -69,8 +72,10 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 		clientAddrString string
 		clientId         int
 		clientAddr	*net.UDPAddr
+		len int
+		err error
 	)
-	len ,err := server.Listener.Read(server.readBuffer)
+	len ,err = server.Listener.Read(server.readBuffer)
 	if len > 0{
 		content := string(server.readBuffer[:len])
 		fmt.Println(content)
@@ -87,8 +92,24 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	kcpConn, err := kcp.DialWithLocal(server.localAddr,clientAddr)
+	fmt.Println(clientAddr)
+	clientC, err := net.DialUDP("udp", server.localAddr, clientAddr)
+	if err != nil{
+		fmt.Println(err.Error())
+	}
+	//随意往客户端发送一个确认消息
+	clientC.Write([]byte("Hello"))
+	server.Listener.Write([]byte(strconv.Itoa(clientId)))
+	len,err = clientC.Read(server.readBuffer)
+	if err == nil && len > 0{
+		clientContent := string(server.readBuffer[:len])
+		if clientContent != "Hello"{
+			return nil, nil
+		}
+	}
+	kcpConn, err := kcp.DialWithLocal(clientC,clientAddr)
 	if err != nil {
+		fmt.Println("fefe")
 		if kcpConn != nil{
 			kcpConn.Close()
 		}
@@ -97,10 +118,6 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 	if kcpSess, ok = kcpConn.(*kcp.UDPSession); !ok {
 		return nil, NotKcpConnError
 	}
-	//随意往客户端发送一个确认消息
-	kcpSess.Write([]byte("H"))
-	//然后叫服务器让客户端也发送一个确认消息给我
-	server.Listener.Write([]byte(strconv.Itoa(clientId)))
 	session,err := CreateKcpSocketSession(kcpSess)
 	if err != nil{
 		return nil, err
@@ -112,8 +129,8 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 	session.SetPeriod(server.SessionConfig.PeriodTime)
 	kcpSess.SetReadBuffer(server.SessionConfig.TcpReadBuffSize)
 	kcpSess.SetWriteBuffer(server.SessionConfig.TcpWriteBuffSize)
-	kcpSess.SetStreamMode(true)
-	kcpSess.SetWindowSize(128, 128)
+	kcpSess.SetStreamMode(false)
+	kcpSess.SetWindowSize(300, 300)
 	kcpSess.SetNoDelay(1, 10, 2, 1)
 	kcpSess.SetDSCP(46)
 	kcpSess.SetMtu(1400)
@@ -121,6 +138,7 @@ func (server *P2PKcpServer) accept() (*SocketSession, error) {
 	kcpSess.SetReadDeadline(time.Now().Add(time.Hour))
 	kcpSess.SetWriteDeadline(time.Now().Add(time.Hour))
 	server.Sessions[session.Id()] = session
+	kcpSess.Write([]byte("Start"))
 	return session, nil
 }
 //是否已经关闭
