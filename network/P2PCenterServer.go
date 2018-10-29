@@ -63,7 +63,7 @@ func (server *P2PCenterServer) HandlerConn(udpAddr *net.UDPAddr, len int) {
 			server.Conn.WriteToUDP([]byte(clientAddrAndId), server.ServerConn)
 		}else if content == "ServerClient"{
 			id := server.GetServerId()
-			fmt.Println("服务器远程地址:" + udpAddr.String())
+			fmt.Printf("服务器%d远程地址:%s",id,udpAddr.String())
 			server.ServerAddrMap[id] = udpAddr
 			server.ServerAddrByteMap[id] = []byte(udpAddr.String())
 		}else {
@@ -73,7 +73,9 @@ func (server *P2PCenterServer) HandlerConn(udpAddr *net.UDPAddr, len int) {
 				id3 := int32(id)
 				con := server.ClientAddrMap[id3]
 				if con != nil {
-					len, err = server.Conn.WriteToUDP(server.ServerAddrByteMap[id3], con)
+					serverAddr := server.ServerAddrByteMap[id3]
+					fmt.Println("发送给客户端[%d]服务器的地址:[%s]",id3,string(serverAddr))
+					len, err = server.Conn.WriteToUDP(serverAddr, con)
 					if err != nil {
 						fmt.Println(err)
 					}
