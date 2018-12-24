@@ -21,17 +21,17 @@ func New(seed int) TsRandom {
 	return ts
 }
 
-func (ts TsRandom) init_genrand(seed uint) {
+func (ts *TsRandom) init_genrand(seed uint) {
 	ts.mt[0] = seed & uint(0xffffffff)
 	for ts.mti = 1; ts.mti < N; ts.mti++ {
 		ts.mt[ts.mti] = uint(1812433253)*(ts.mt[ts.mti-1]^(ts.mt[ts.mti-1]>>30)) + uint(ts.mti)
 		ts.mt[ts.mti] &= uint(0xffffffff)
 	}
 }
-func (ts TsRandom)Next() int{
+func (ts *TsRandom)Next() int{
 	return ts.genrand_int31()
 }
-func (ts TsRandom)RangeInt(minValue int,maxValue int) int{
+func (ts *TsRandom)RangeInt(minValue int,maxValue int) int{
 	if minValue > maxValue {
 		tmp := maxValue
 		maxValue = minValue
@@ -40,10 +40,10 @@ func (ts TsRandom)RangeInt(minValue int,maxValue int) int{
 	rangeV := maxValue - minValue
 	return minValue + ts.Next() % rangeV
 }
-func (ts TsRandom)genrand_int31()int{
+func (ts *TsRandom)genrand_int31()int{
 	return int(ts.genrand_int32() >> 1)
 }
-func (ts TsRandom)genrand_int32() uint{
+func (ts *TsRandom)genrand_int32() uint{
 	var y uint
 	if ts.mti >= N {
 		var kk int
