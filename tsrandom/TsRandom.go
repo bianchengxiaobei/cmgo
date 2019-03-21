@@ -40,6 +40,14 @@ func (ts *TsRandom)RangeInt(minValue int,maxValue int) int{
 	rangeV := maxValue - minValue
 	return minValue + ts.Next() % rangeV
 }
+func (ts *TsRandom)RandomBool() bool{
+	value := ts.RangeInt(0, 2)
+	if value == 0{
+		return false
+	}else{
+		return true
+	}
+}
 func (ts *TsRandom)genrand_int31()int{
 	return int(ts.genrand_int32() >> 1)
 }

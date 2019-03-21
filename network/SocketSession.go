@@ -18,6 +18,7 @@ const (
 	waitDuration = 3e9				//3s
 )
 var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
+var timer = time.NewTicker(5 * time.Second)
 var ErrSessionClosed = errors.New("Session已经关闭!")
 var ErrSessionBlocked = errors.New("Session阻塞!")
 type SocketSession struct{
@@ -209,8 +210,10 @@ func (session *SocketSession) CloseChan(){
 		session.once.Do(func() {
 			now := wheel.Now()
 			if conn := session.GetConn(); conn != nil {
-				conn.SetReadDeadline(now.Add(session.GetReadTimeout()))
-				conn.SetWriteDeadline(now.Add(session.GetWriteTimeout()))
+				if _,ok := conn.(*kcp.UDPSession);ok == false{
+					conn.SetReadDeadline(now.Add(session.GetReadTimeout()))
+					conn.SetWriteDeadline(now.Add(session.GetWriteTimeout()))
+				}
 			}
 			close(session.done)
 		})
@@ -246,7 +249,7 @@ func (session *SocketSession) workLoop(socket ISocket){
 		//log4g.Infof("[Session:id:%d]关闭!",session.Id())
 		//防止messageLoop关闭
 		atomic.AddInt32(&(session.lockNum),-1)
-		session.handler.SessionClosed(session)
+		session.handler.SessionClosed(session,err)
 		session.gc()
 		socket.DoneWaitGroup()
 	}()
@@ -263,6 +266,10 @@ LOOP:
 					break LOOP
 				}
 			}
+		//case <-wheel.After(session.period)://定时
+		//	session.handler.SessionPeriod(session)
+		case <- timer.C:
+			session.handler.SessionPeriod(session)
 		case inData = <-session.readQueue:
 			session.handler.MessageReceived(session,inData)
 		case outData = <-session.writeQueue:
@@ -270,8 +277,6 @@ LOOP:
 				session.CloseChan()
 			}
 			session.handler.MessageSent(session,outData)
-		case <-wheel.After(session.period)://定时
-			session.handler.SessionPeriod(session)
 		}
 	}
 }
