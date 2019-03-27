@@ -276,6 +276,7 @@ LOOP:
 				session.CloseChan()
 			}
 			session.handler.MessageSent(session,outData)
+		default:
 		}
 	}
 }
