@@ -18,7 +18,6 @@ const (
 )
 //var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
 var timer = time.NewTicker(5 * time.Second)
-var writeTimer = time.NewTimer(waitDuration)
 var ErrSessionClosed = errors.New("Session已经关闭!")
 var ErrSessionBlocked = errors.New("Session阻塞!")
 type SocketSession struct{
@@ -178,7 +177,7 @@ func (session *SocketSession)WriteMsg(msgId int,message interface{}) error{
 	select {
 	case session.writeQueue<-writeMsg:
 		break
-	case <-writeTimer.C:
+	case <-time.After(waitDuration):
 			return ErrSessionBlocked
 	}
 	return nil
