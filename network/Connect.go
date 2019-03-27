@@ -149,7 +149,7 @@ func (connect *SocketConnect) SetSocketSession(session SocketSessionInterface){
 }
 func (connect *SocketTcpConnect) Read(data []byte)(int,error){
 	if connect.readTimeout > 0{
-		currentTime := wheel.Now()
+		currentTime := time.Now()
 		if currentTime.Sub(connect.readLastDeadTime) > (connect.readTimeout >> 2){
 			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
 				return 0,err
@@ -165,7 +165,7 @@ func (connect *SocketTcpConnect) Read(data []byte)(int,error){
 }
 func (connect *SocketKcpConnect)Read(data []byte)(int,error)  {
 	if connect.readTimeout > 0{
-		currentTime := wheel.Now()
+		currentTime := time.Now()
 		if currentTime.Sub(connect.readLastDeadTime) > (connect.readTimeout >> 2){
 			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
 				return 0,err
@@ -181,7 +181,7 @@ func (connect *SocketKcpConnect)Read(data []byte)(int,error)  {
 }
 func (connect *SocketTcpConnect) Write(data []byte)(int, error){
 	if connect.writeTimeout > 0{
-		currentTime := wheel.Now()
+		currentTime := time.Now()
 		if currentTime.Sub(connect.writeLastDeadTime) > (connect.writeTimeout >> 2){
 			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
 				return 0,err
@@ -197,7 +197,7 @@ func (connect *SocketTcpConnect) Write(data []byte)(int, error){
 }
 func (connect *SocketKcpConnect)Write(data []byte)(int,error)  {
 	if connect.writeTimeout > 0{
-		currentTime := wheel.Now()
+		currentTime := time.Now()
 		if currentTime.Sub(connect.writeLastDeadTime) > (connect.writeTimeout >> 2){
 			if err := connect.conn.SetWriteDeadline(currentTime.Add(connect.readTimeout));err!=nil{
 				return 0,err

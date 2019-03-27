@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 	"github.com/bianchengxiaobei/cmgo/cmattribute"
-	"github.com/bianchengxiaobei/cmgo/cmtime"
 	"bytes"
 	"sync/atomic"
 	"errors"
@@ -17,8 +16,9 @@ const (
 	period		= 5e9			//5s
 	waitDuration = 3e9				//3s
 )
-var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
+//var wheel = cmtime.NewWheel(time.Duration(100 * float64(time.Millisecond)),1200)
 var timer = time.NewTicker(5 * time.Second)
+var writeTimer = time.NewTimer(waitDuration)
 var ErrSessionClosed = errors.New("Session已经关闭!")
 var ErrSessionBlocked = errors.New("Session阻塞!")
 type SocketSession struct{
@@ -178,7 +178,7 @@ func (session *SocketSession)WriteMsg(msgId int,message interface{}) error{
 	select {
 	case session.writeQueue<-writeMsg:
 		break
-	case <-wheel.After(waitDuration):
+	case <-writeTimer.C:
 			return ErrSessionBlocked
 	}
 	return nil
@@ -208,7 +208,7 @@ func (session *SocketSession) CloseChan(){
 		return
 	default:
 		session.once.Do(func() {
-			now := wheel.Now()
+			now := time.Now()
 			if conn := session.GetConn(); conn != nil {
 				if _,ok := conn.(*kcp.UDPSession);ok == false{
 					conn.SetReadDeadline(now.Add(session.GetReadTimeout()))
