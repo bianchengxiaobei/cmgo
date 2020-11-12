@@ -5,10 +5,10 @@ import (
 	"github.com/bianchengxiaobei/cmgo/log4g"
 	"github.com/xtaci/kcp-go"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"strings"
-	"strconv"
 )
 
 type P2PKcpServer struct {
@@ -64,7 +64,7 @@ func (server *P2PKcpServer) Connect(addr string) error {
 }
 func (server *P2PKcpServer) run() {
 	var (
-		clientId int
+		clientId         int
 		clientAddrString string
 		len              int
 		err              error
@@ -82,7 +82,7 @@ func (server *P2PKcpServer) run() {
 		if len > 0 {
 			content := string(server.readBuffer[:len])
 			//fmt.Println(content)
-			if strings.Contains(content,";"){
+			if strings.Contains(content, ";") {
 				a := strings.Split(content, ";")
 				clientId, err = strconv.Atoi(a[1])
 				if err != nil {
@@ -90,14 +90,14 @@ func (server *P2PKcpServer) run() {
 				}
 				clientAddrString = a[0]
 			}
-			go server.accept(clientId,clientAddrString)
+			go server.accept(clientId, clientAddrString)
 		}
 
 	}
 	////阻塞线程，等全部完成之后结束
 	//server.waitGroup.Wait()
 }
-func (server *P2PKcpServer) accept(clientId int,clientAddrString string) {
+func (server *P2PKcpServer) accept(clientId int, clientAddrString string) {
 	var (
 		ok         bool
 		kcpSess    *kcp.UDPSession
@@ -238,4 +238,7 @@ func (server *P2PKcpServer) SetMessageHandler(handler EventHandleInterface) {
 }
 func (server *P2PKcpServer) GetSessionConfig() *SocketSessionConfig {
 	return server.SessionConfig
+}
+func (server *P2PKcpServer) RemoveSession(sessionId uint32) {
+	delete(server.Sessions, sessionId)
 }

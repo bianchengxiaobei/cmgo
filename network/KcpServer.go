@@ -1,9 +1,9 @@
 package network
 
 import (
-	"sync"
-	"github.com/xtaci/kcp-go"
 	"github.com/bianchengxiaobei/cmgo/log4g"
+	"github.com/xtaci/kcp-go"
+	"sync"
 	"time"
 )
 
@@ -15,15 +15,16 @@ type KcpServer struct {
 	codec         Protocol
 	handler       EventHandleInterface
 	sync.Once
-	done chan struct{}
-	Sessions 	map[uint32]SocketSessionInterface
+	done     chan struct{}
+	Sessions map[uint32]SocketSessionInterface
 }
-func (server *KcpServer) Bind(addr string) error{
+
+func (server *KcpServer) Bind(addr string) error {
 	if addr == "" {
 		return ConnectAddressNilError
 	}
-	l,err := kcp.Listen(addr)
-	if err != nil{
+	l, err := kcp.Listen(addr)
+	if err != nil {
 		return err
 	}
 	server.Listener = l.(*kcp.Listener)
@@ -33,18 +34,18 @@ func (server *KcpServer) Bind(addr string) error{
 	go server.run()
 	return nil
 }
-func (server *KcpServer)Connect(addr string) error{
+func (server *KcpServer) Connect(addr string) error {
 	return nil
 }
 func (server *KcpServer) run() {
 	for {
-		if server.IsClosed(){
+		if server.IsClosed() {
 			log4g.Info("服务器已经关闭!")
 			return
 		}
 		session, err := server.accept()
 		if err != nil {
-			if session == nil{
+			if session == nil {
 				continue
 			}
 		}
@@ -61,7 +62,7 @@ func (server *KcpServer) accept() (*SocketSession, error) {
 	)
 	kcpConn, err := server.Listener.Accept()
 	if err != nil {
-		if kcpConn != nil{
+		if kcpConn != nil {
 			kcpConn.Close()
 		}
 		return nil, err
@@ -69,8 +70,8 @@ func (server *KcpServer) accept() (*SocketSession, error) {
 	if kcpSess, ok = kcpConn.(*kcp.UDPSession); !ok {
 		return nil, NotKcpConnError
 	}
-	session,err := CreateKcpSocketSession(kcpSess)
-	if err != nil{
+	session, err := CreateKcpSocketSession(kcpSess)
+	if err != nil {
 		return nil, err
 	}
 	session.SetProtocol(server.codec)
@@ -91,7 +92,7 @@ func (server *KcpServer) accept() (*SocketSession, error) {
 	server.Sessions[session.Id()] = session
 	return session, nil
 }
-func (server *KcpServer)Close(){
+func (server *KcpServer) Close() {
 	select {
 	case <-server.done:
 		return
@@ -102,15 +103,16 @@ func (server *KcpServer)Close(){
 				server.Listener.Close()
 				server.Listener = nil
 			}
-			for _,session:= range server.Sessions {
+			for _, session := range server.Sessions {
 				session.CloseChan()
 			}
 		})
 	}
 	server.waitGroup.Wait()
 }
+
 //是否已经关闭
-func (server  *KcpServer) IsClosed() bool{
+func (server *KcpServer) IsClosed() bool {
 	select {
 	case <-server.done:
 		return true
@@ -118,18 +120,20 @@ func (server  *KcpServer) IsClosed() bool{
 		return false
 	}
 }
-func (server *KcpServer) DoneWaitGroup(){
+func (server *KcpServer) DoneWaitGroup() {
 	server.waitGroup.Done()
 }
+
 //创建一个新的KcpServer
 func NewKcpServer(sessionConfig *SocketSessionConfig) *KcpServer {
 	server := &KcpServer{
-		SessionConfig: 	sessionConfig,
-		Sessions:make(map[uint32]SocketSessionInterface),
-		done:			make(chan struct{}),
+		SessionConfig: sessionConfig,
+		Sessions:      make(map[uint32]SocketSessionInterface),
+		done:          make(chan struct{}),
 	}
 	return server
 }
+
 //设置编解码
 func (server *KcpServer) SetProtocolCodec(protocol Protocol) {
 	server.codec = protocol
@@ -139,6 +143,9 @@ func (server *KcpServer) SetProtocolCodec(protocol Protocol) {
 func (server *KcpServer) SetMessageHandler(handler EventHandleInterface) {
 	server.handler = handler
 }
-func (server *KcpServer)GetSessionConfig()*SocketSessionConfig{
+func (server *KcpServer) GetSessionConfig() *SocketSessionConfig {
 	return server.SessionConfig
+}
+func (server *KcpServer) RemoveSession(sessionId uint32) {
+	delete(server.Sessions, sessionId)
 }

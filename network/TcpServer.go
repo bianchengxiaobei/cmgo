@@ -1,10 +1,10 @@
 package network
 
 import (
+	"github.com/bianchengxiaobei/cmgo/log4g"
 	"net"
 	"sync"
 	"time"
-	"github.com/bianchengxiaobei/cmgo/log4g"
 )
 
 type TcpServer struct {
@@ -16,8 +16,8 @@ type TcpServer struct {
 	codec         Protocol
 	handler       EventHandleInterface
 	sync.Once
-	done chan struct{}
-	Sessions 	map[uint32]SocketSessionInterface
+	done     chan struct{}
+	Sessions map[uint32]SocketSessionInterface
 }
 type SocketSessionConfig struct {
 	TcpNoDelay         bool
@@ -25,23 +25,25 @@ type SocketSessionConfig struct {
 	TcpKeepAlivePeriod time.Duration
 	TcpReadBuffSize    int
 	TcpWriteBuffSize   int
-	ReadChanLen			int
-	WriteChanLen		int
-	PeriodTime		time.Duration
+	ReadChanLen        int
+	WriteChanLen       int
+	PeriodTime         time.Duration
 }
 type ISocket interface {
 	run()
 	Close()
-	IsClosed()	bool
+	IsClosed() bool
 	DoneWaitGroup()
 	Bind(addr string) error
 	Connect(addr string) error
 	SetProtocolCodec(protocol Protocol)
 	SetMessageHandler(handler EventHandleInterface)
-	GetSessionConfig()*SocketSessionConfig
+	GetSessionConfig() *SocketSessionConfig
+	RemoveSession(sessionId uint32)
 }
+
 //服务器开始监听断开
-func (server *TcpServer) Bind(addr string) error{
+func (server *TcpServer) Bind(addr string) error {
 	if addr == "" {
 		return ConnectAddressNilError
 	}
@@ -54,18 +56,18 @@ func (server *TcpServer) Bind(addr string) error{
 	go server.run()
 	return nil
 }
-func (server *TcpServer)Connect(addr string) error{
+func (server *TcpServer) Connect(addr string) error {
 	return nil
 }
 func (server *TcpServer) run() {
 	for {
-		if server.IsClosed(){
+		if server.IsClosed() {
 			log4g.Info("服务器已经关闭!")
 			return
 		}
 		session, err := server.accept()
 		if err != nil {
-			if session == nil{
+			if session == nil {
 				continue
 			}
 		}
@@ -82,13 +84,13 @@ func (server *TcpServer) accept() (*SocketSession, error) {
 	)
 	tcpConn, err := server.Listener.Accept()
 	if err != nil {
-		if tcpConn != nil{
+		if tcpConn != nil {
 			tcpConn.Close()
 		}
 		return nil, err
 	}
-	session,err := CreateTcpSocketSession(tcpConn)
-	if err != nil{
+	session, err := CreateTcpSocketSession(tcpConn)
+	if err != nil {
 		return nil, err
 	}
 	if conn, ok = session.GetConn().(*net.TCPConn); !ok {
@@ -114,10 +116,10 @@ func NewTcpServer(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpSer
 		log4g.Error("tcpVersion: == null")
 	}
 	server := &TcpServer{
-		TcpVersion:    	tcpVersion,
-		SessionConfig: 	sessionConfig,
-		Sessions:make(map[uint32]SocketSessionInterface),
-		done:			make(chan struct{}),
+		TcpVersion:    tcpVersion,
+		SessionConfig: sessionConfig,
+		Sessions:      make(map[uint32]SocketSessionInterface),
+		done:          make(chan struct{}),
 	}
 	return server
 }
@@ -144,15 +146,16 @@ func (server *TcpServer) Close() {
 				server.Listener.Close()
 				server.Listener = nil
 			}
-			for _,session:= range server.Sessions {
+			for _, session := range server.Sessions {
 				session.CloseChan()
 			}
 		})
 	}
 	server.waitGroup.Wait()
 }
+
 //是否已经关闭
-func (server  *TcpServer) IsClosed() bool{
+func (server *TcpServer) IsClosed() bool {
 	select {
 	case <-server.done:
 		return true
@@ -160,9 +163,14 @@ func (server  *TcpServer) IsClosed() bool{
 		return false
 	}
 }
-func (server *TcpServer) DoneWaitGroup(){
+func (server *TcpServer) DoneWaitGroup() {
 	server.waitGroup.Done()
 }
-func (server *TcpServer)GetSessionConfig()*SocketSessionConfig{
+func (server *TcpServer) GetSessionConfig() *SocketSessionConfig {
 	return server.SessionConfig
+}
+
+///移除session
+func (server *TcpServer) RemoveSession(sessionId uint32) {
+	delete(server.Sessions, sessionId)
 }

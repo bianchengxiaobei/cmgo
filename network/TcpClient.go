@@ -1,19 +1,20 @@
 package network
 
-
 import (
-	"sync"
-	"net"
-	"github.com/bianchengxiaobei/cmgo/log4g"
 	"errors"
+	"github.com/bianchengxiaobei/cmgo/log4g"
+	"net"
+	"sync"
 )
 
 const (
 	connectTimeout = 5e9
 )
+
 var NotTcpConnError = errors.New("Not TcpConn!")
 var NotKcpConnError = errors.New("Not KcpConn!")
 var ConnectAddressNilError = errors.New("客户端连接地址为空！")
+
 type TcpClient struct {
 	lock          sync.Mutex
 	TcpVersion    string
@@ -23,67 +24,69 @@ type TcpClient struct {
 	handler       EventHandleInterface
 	Session       *SocketSession
 	sync.Once
-	done          chan struct{}
+	done chan struct{}
 }
+
 //创建一个新的TcpServer
 func NewTcpClient(tcpVersion string, sessionConfig *SocketSessionConfig) *TcpClient {
 	if tcpVersion == "" {
 		panic("tcpVersion: == null")
 	}
 	client := &TcpClient{
-		TcpVersion:    		tcpVersion,
-		SessionConfig: 		sessionConfig,
-		done:				make(chan struct{}),
+		TcpVersion:    tcpVersion,
+		SessionConfig: sessionConfig,
+		done:          make(chan struct{}),
 	}
 	return client
 }
-func (client *TcpClient)Connect(addr string) error{
-	var(
-		err error
-		conn net.Conn
+func (client *TcpClient) Connect(addr string) error {
+	var (
+		err     error
+		conn    net.Conn
 		session *SocketSession
 	)
 	if addr == "" {
 		return ConnectAddressNilError
 	}
-	conn,err = net.DialTimeout(client.TcpVersion,addr,connectTimeout)
-	if err != nil{
+	conn, err = net.DialTimeout(client.TcpVersion, addr, connectTimeout)
+	if err != nil {
 		return err
 	}
-	session,err = client.CreateSessionConnect(conn)
-	if err != nil{
+	session, err = client.CreateSessionConnect(conn)
+	if err != nil {
 		return err
 	}
-	if session != nil{
+	if session != nil {
 		client.Session = session
 		client.waitGroup.Add(1)
 		client.run()
 	}
 	return nil
 }
-func (client *TcpClient)Bind(addr string) error{
+func (client *TcpClient) Bind(addr string) error {
 	return nil
 }
-func (client *TcpClient)run(){
-	if client.Session != nil{
-		if client.IsClosed(){
+func (client *TcpClient) run() {
+	if client.Session != nil {
+		if client.IsClosed() {
 			log4g.Info("客户端已经关闭!")
 			return
 		}
 		client.Session.run(client)
 	}
 }
+
 //创建客户端session
-func (client *TcpClient)CreateSessionConnect(conn net.Conn) (*SocketSession,error){
+func (client *TcpClient) CreateSessionConnect(conn net.Conn) (*SocketSession, error) {
 	var (
 		tcpConn *net.TCPConn
-		ok bool
+		ok      bool
 	)
-	session,err := CreateTcpSocketSession(conn)
-	if err != nil{
+	session, err := CreateTcpSocketSession(conn)
+	if err != nil {
 		return nil, err
 	}
-	if tcpConn,ok = conn.(*net.TCPConn);!ok{
+	if tcpConn, ok = conn.(*net.TCPConn); !ok {
 		return nil, NotTcpConnError
 	}
 	session.SetProtocol(client.codec)
@@ -96,8 +99,9 @@ func (client *TcpClient)CreateSessionConnect(conn net.Conn) (*SocketSession,erro
 	tcpConn.SetKeepAlivePeriod(client.SessionConfig.TcpKeepAlivePeriod)
 	tcpConn.SetReadBuffer(client.SessionConfig.TcpReadBuffSize)
 	tcpConn.SetWriteBuffer(client.SessionConfig.TcpWriteBuffSize)
-	return session,nil
+	return session, nil
 }
+
 //设置编解码
 func (client *TcpClient) SetProtocolCodec(protocol Protocol) {
 	client.codec = protocol
@@ -107,7 +111,7 @@ func (client *TcpClient) SetProtocolCodec(protocol Protocol) {
 func (client *TcpClient) SetMessageHandler(handler EventHandleInterface) {
 	client.handler = handler
 }
-func (client *TcpClient) Close(){
+func (client *TcpClient) Close() {
 	select {
 	case <-client.done:
 		return
@@ -120,7 +124,7 @@ func (client *TcpClient) Close(){
 	}
 	client.waitGroup.Wait()
 }
-func (client *TcpClient) IsClosed() bool{
+func (client *TcpClient) IsClosed() bool {
 	select {
 	case <-client.done:
 		return true
@@ -128,9 +132,12 @@ func (client *TcpClient) IsClosed() bool{
 		return false
 	}
 }
-func (client *TcpClient) DoneWaitGroup(){
+func (client *TcpClient) DoneWaitGroup() {
 	client.waitGroup.Done()
 }
-func (server *TcpClient)GetSessionConfig()*SocketSessionConfig{
+func (server *TcpClient) GetSessionConfig() *SocketSessionConfig {
 	return server.SessionConfig
+}
+func (server *TcpClient) RemoveSession(sessionId uint32) {
+
 }
