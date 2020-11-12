@@ -6,7 +6,7 @@ import (
 	"time"
 	"sync/atomic"
 	"errors"
-	"github.com/xtaci/kcp-go"
+	"gitee.com/Caomao/kcp-go"
 )
 
 const (

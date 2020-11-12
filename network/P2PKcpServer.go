@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 	"github.com/bianchengxiaobei/cmgo/log4g"
-	"github.com/xtaci/kcp-go"
+	"gitee.com/Caomao/kcp-go"
 	"net"
 	"strconv"
 	"strings"
